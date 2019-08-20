@@ -56,6 +56,7 @@ class SokobanMap:
 
         box_positions = []
         tgt_positions = []
+        dead_positions = []
         player_position = None
         for i in range(num_rows):
             for j in range(row_len):
@@ -76,6 +77,13 @@ class SokobanMap:
                     player_position = (i, j)
                     tgt_positions.append((i, j))
                     rows[i][j] = self.FREE_SPACE_SYMBOL
+                    # Check for "deadzones" from map layout and add to list
+                if rows[i][j] == self.FREE_SPACE_SYMBOL or rows[i][j] == self.PLAYER_SYMBOL:
+                    if rows[i][j - 1] == self.OBSTACLE_SYMBOL or rows[i][j + 1] == self.OBSTACLE_SYMBOL:
+                        if rows[i - 1][j] == self.OBSTACLE_SYMBOL or rows[i + 1][j] == self.OBSTACLE_SYMBOL:
+                            dead_positions.append((i, j))
+        print(dead_positions)
+
 
         assert len(box_positions) == len(tgt_positions), "Number of boxes does not match number of targets"
 
@@ -87,6 +95,7 @@ class SokobanMap:
         self.player_x = player_position[1]
         self.player_y = player_position[0]
         self.obstacle_map = rows
+        self.dead_positions = dead_positions
 
     def apply_move(self, move):
         """
@@ -162,6 +171,13 @@ class SokobanMap:
         self.player_y = new_y
 
         return True
+
+
+    def check_map_dead_zone(self):
+        for i in self.box_positions:
+            for j in self.dead_positions:
+                if i == j:
+                    return True
 
     def render(self):
         """
@@ -245,6 +261,9 @@ def main(arglist):
 
             map_inst.apply_move(a)
             map_inst.render()
+            if map_inst.check_map_dead_zone():
+                print("can not complete/fail")
+                return
 
             steps += 1
 
