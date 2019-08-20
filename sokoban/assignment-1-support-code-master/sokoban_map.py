@@ -61,35 +61,46 @@ class SokobanMap:
         box_positions = []
         tgt_positions = []
         dead_positions = []
+        obstacle_positions = []
         player_position = None
         for i in range(num_rows):
             for j in range(row_len):
                 if rows[i][j] == self.BOX_SYMBOL:
                     box_positions.append((i, j))
                     rows[i][j] = self.FREE_SPACE_SYMBOL
+
                 elif rows[i][j] == self.TGT_SYMBOL:
                     tgt_positions.append((i, j))
                     rows[i][j] = self.FREE_SPACE_SYMBOL
+
                 elif rows[i][j] == self.PLAYER_SYMBOL:
                     player_position = (i, j)
+
                     # Check if player start is possible dead zone
                     if rows[i][j - 1] == self.OBSTACLE_SYMBOL or rows[i][j + 1] == self.OBSTACLE_SYMBOL:
                         if rows[i - 1][j] == self.OBSTACLE_SYMBOL or rows[i + 1][j] == self.OBSTACLE_SYMBOL:
                             dead_positions.append((i, j))
                     rows[i][j] = self.FREE_SPACE_SYMBOL
+
                 elif rows[i][j] == self.BOX_ON_TGT_SYMBOL:
                     box_positions.append((i, j))
                     tgt_positions.append((i, j))
                     rows[i][j] = self.FREE_SPACE_SYMBOL
+
                 elif rows[i][j] == self.PLAYER_ON_TGT_SYMBOL:
                     player_position = (i, j)
                     tgt_positions.append((i, j))
                     rows[i][j] = self.FREE_SPACE_SYMBOL
+
                     # Check for "deadzones" from map layout and add to list
                 elif rows[i][j] == self.FREE_SPACE_SYMBOL:
                     if rows[i][j - 1] == self.OBSTACLE_SYMBOL or rows[i][j + 1] == self.OBSTACLE_SYMBOL:
                         if rows[i - 1][j] == self.OBSTACLE_SYMBOL or rows[i + 1][j] == self.OBSTACLE_SYMBOL:
                             dead_positions.append((i, j))
+                            
+                elif rows[i][j] == self.OBSTACLE_SYMBOL:
+                    obstacle_positions.append((i, j))
+
         print(dead_positions)
 
         assert len(box_positions) == len(tgt_positions), "Number of boxes does not match number of targets"
@@ -103,6 +114,8 @@ class SokobanMap:
         self.player_y = player_position[0]
         self.obstacle_map = rows
         self.dead_positions = dead_positions
+        self.obstacle_positions = obstacle_positions
+        print(obstacle_positions)
 
     def search(self, obstacle_map, player_position, dead_positions,search):
         return False
@@ -183,11 +196,24 @@ class SokobanMap:
 
         return True
 
+    """
+    Check if the boxes have created a 'dead-zone' and the game is over
+    @:return True if the game is over
+    """
     def check_box_dead_zone(self):
+        # If 2 boxes are next to each other and against the wall then no move can be made
         for y, x in self.box_positions:
-            print(y)
-            print(x)
+            if self.box_positions.__contains__((y-1, x)) or self.box_positions.__contains__((y + 1, x)):
+                if self.obstacle_positions.__contains__((y, x - 1)) or self.obstacle_positions.__contains__((y, x + 1)):
+                    return True
+            if self.box_positions.__contains__((y, x - 1)) or self.box_positions.__contains__((y, x + 1)):
+                if self.obstacle_positions.__contains__((y - 1, x)) or self.obstacle_positions.__contains__((y + 1, x)):
+                    return True
 
+    """
+    Check if the box is in a 'dead-zone' from the map positioning
+    @:return True if the game is over
+    """
     def check_map_dead_zone(self):
         for i in self.box_positions:
             for j in self.dead_positions:
@@ -255,6 +281,9 @@ def main(arglist):
             if map_inst.check_map_dead_zone():
                 print("can not complete/fail")
                 return
+            if map_inst.check_box_dead_zone():
+                print("can not complete/fail")
+                return
 
 
 
@@ -297,10 +326,14 @@ def main(arglist):
                     print("can not complete/fail")
                     return
 
+
                 steps += 1
 
                 if map_inst.is_finished():
                     print("Puzzle solved in " + str(steps) + " steps!")
+                    return
+                if map_inst.check_box_dead_zone():
+                    print("can not complete/fail")
                     return
 
 
