@@ -1,5 +1,5 @@
 import sys
-
+from .astar import *
 
 class SokobanMap:
     """
@@ -84,7 +84,6 @@ class SokobanMap:
                             dead_positions.append((i, j))
         print(dead_positions)
 
-
         assert len(box_positions) == len(tgt_positions), "Number of boxes does not match number of targets"
 
         self.x_size = row_len
@@ -96,6 +95,10 @@ class SokobanMap:
         self.player_y = player_position[0]
         self.obstacle_map = rows
         self.dead_positions = dead_positions
+
+    def search(self, obstacle_map, player_position, dead_positions,search):
+        return False
+
 
     def apply_move(self, move):
         """
@@ -229,36 +232,12 @@ def main(arglist):
 
     map_inst = SokobanMap(arglist[0])
     map_inst.render()
+    actions = ['d','l','l','u','l','d','d']
 
     steps = 0
-
-    while True:
-        char = getchar()
-
-        if char == b'q':
-            break
-
-        if char == b'r':
-            map_inst = SokobanMap(arglist[0])
-            map_inst.render()
-
-            steps = 0
-
-        if char == b'\xe0':
-            # got arrow - read direction
-            dir = getchar()
-            if dir == b'H':
-                a = SokobanMap.UP
-            elif dir == b'P':
-                a = SokobanMap.DOWN
-            elif dir == b'K':
-                a = SokobanMap.LEFT
-            elif dir == b'M':
-                a = SokobanMap.RIGHT
-            else:
-                print("!!!error")
-                a = SokobanMap.UP
-
+    ai = False
+    if ai:
+        for a in actions:
             map_inst.apply_move(a)
             map_inst.render()
             if map_inst.check_map_dead_zone():
@@ -270,6 +249,45 @@ def main(arglist):
             if map_inst.is_finished():
                 print("Puzzle solved in " + str(steps) + " steps!")
                 return
+    else:
+        while True:
+            char = getchar()
+
+            if char == b'q':
+                break
+
+            if char == b'r':
+                map_inst = SokobanMap(arglist[0])
+                map_inst.render()
+
+                steps = 0
+
+            if char == b'\xe0':
+                # got arrow - read direction
+                dir = getchar()
+                if dir == b'H':
+                    a = SokobanMap.UP
+                elif dir == b'P':
+                    a = SokobanMap.DOWN
+                elif dir == b'K':
+                    a = SokobanMap.LEFT
+                elif dir == b'M':
+                    a = SokobanMap.RIGHT
+                else:
+                    print("!!!error")
+                    a = SokobanMap.UP
+
+                map_inst.apply_move(a)
+                map_inst.render()
+                if map_inst.check_map_dead_zone():
+                    print("can not complete/fail")
+                    return
+
+                steps += 1
+
+                if map_inst.is_finished():
+                    print("Puzzle solved in " + str(steps) + " steps!")
+                    return
 
 
 if __name__ == '__main__':

@@ -169,8 +169,8 @@ class AstarGridNode(AStarNode):
 
 class AStarSoko(Astar):
 
-    #visited
-    #unvisited
+    #visited list
+    #unvisited list ==> literally everyone
     #???
 
     def reparent(self, node):
