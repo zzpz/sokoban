@@ -22,10 +22,10 @@ class SokobanMap:
     PLAYER_ON_TGT_SYMBOL = 'p'
 
     # move symbols (i.e. output file symbols)
-    LEFT = 'a'
-    RIGHT = 'd'
-    UP = 'w'
-    DOWN = 's'
+    LEFT = 'l'
+    RIGHT = 'r'
+    UP = 'u'
+    DOWN = 'd'
 
     # render characters
     FREE_GLYPH = '   '
@@ -41,7 +41,6 @@ class SokobanMap:
         """
         f = open(filename, 'r')
 
-        ##open file and read each row
         rows = []
         for line in f:
             if len(line.strip()) > 0:
@@ -49,18 +48,15 @@ class SokobanMap:
 
         f.close()
 
-        ##will always be a grid of RxC as all rows must be same length
         row_len = len(rows[0])
         for row in rows:
             assert len(row) == row_len, "Mismatch in row length"
 
-        num_rows = len(rows) #refactored to be columns
+        num_rows = len(rows)
 
         box_positions = []
         tgt_positions = []
         player_position = None
-
-        ##iterate each space and find boxes/targets/player /freespaces
         for i in range(num_rows):
             for j in range(row_len):
                 if rows[i][j] == self.BOX_SYMBOL:
@@ -81,7 +77,6 @@ class SokobanMap:
                     tgt_positions.append((i, j))
                     rows[i][j] = self.FREE_SPACE_SYMBOL
 
-
         assert len(box_positions) == len(tgt_positions), "Number of boxes does not match number of targets"
 
         self.x_size = row_len
@@ -91,8 +86,7 @@ class SokobanMap:
         self.player_position = player_position
         self.player_x = player_position[1]
         self.player_y = player_position[0]
-        self.level_map = rows
-
+        self.obstacle_map = rows
 
     def apply_move(self, move):
         """
@@ -102,28 +96,28 @@ class SokobanMap:
         """
         # basic obstacle check
         if move == self.LEFT:
-            if self.level_map[self.player_y][self.player_x - 1] == self.OBSTACLE_SYMBOL:
+            if self.obstacle_map[self.player_y][self.player_x - 1] == self.OBSTACLE_SYMBOL:
                 return False
             else:
                 new_x = self.player_x - 1
                 new_y = self.player_y
 
         elif move == self.RIGHT:
-            if self.level_map[self.player_y][self.player_x + 1] == self.OBSTACLE_SYMBOL:
+            if self.obstacle_map[self.player_y][self.player_x + 1] == self.OBSTACLE_SYMBOL:
                 return False
             else:
                 new_x = self.player_x + 1
                 new_y = self.player_y
 
         elif move == self.UP:
-            if self.level_map[self.player_y - 1][self.player_x] == self.OBSTACLE_SYMBOL:
+            if self.obstacle_map[self.player_y - 1][self.player_x] == self.OBSTACLE_SYMBOL:
                 return False
             else:
                 new_x = self.player_x
                 new_y = self.player_y - 1
 
         else:
-            if self.level_map[self.player_y + 1][self.player_x] == self.OBSTACLE_SYMBOL:
+            if self.obstacle_map[self.player_y + 1][self.player_x] == self.OBSTACLE_SYMBOL:
                 return False
             else:
                 new_x = self.player_x
@@ -132,28 +126,28 @@ class SokobanMap:
         # pushed box collision check
         if (new_y, new_x) in self.box_positions:
             if move == self.LEFT:
-                if self.level_map[new_y][new_x - 1] == self.OBSTACLE_SYMBOL or (new_y, new_x - 1) in self.box_positions:
+                if self.obstacle_map[new_y][new_x - 1] == self.OBSTACLE_SYMBOL or (new_y, new_x - 1) in self.box_positions:
                     return False
                 else:
                     new_box_x = new_x - 1
                     new_box_y = new_y
 
             elif move == self.RIGHT:
-                if self.level_map[new_y][new_x + 1] == self.OBSTACLE_SYMBOL or (new_y, new_x + 1) in self.box_positions:
+                if self.obstacle_map[new_y][new_x + 1] == self.OBSTACLE_SYMBOL or (new_y, new_x + 1) in self.box_positions:
                     return False
                 else:
                     new_box_x = new_x + 1
                     new_box_y = new_y
 
             elif move == self.UP:
-                if self.level_map[new_y - 1][new_x] == self.OBSTACLE_SYMBOL  or (new_y - 1, new_x) in self.box_positions:
+                if self.obstacle_map[new_y - 1][new_x] == self.OBSTACLE_SYMBOL  or (new_y - 1, new_x) in self.box_positions:
                     return False
                 else:
                     new_box_x = new_x
                     new_box_y = new_y - 1
 
             else:
-                if self.level_map[new_y + 1][new_x] == self.OBSTACLE_SYMBOL or (new_y + 1, new_x) in self.box_positions:
+                if self.obstacle_map[new_y + 1][new_x] == self.OBSTACLE_SYMBOL or (new_y + 1, new_x) in self.box_positions:
                     return False
                 else:
                     new_box_x = new_x
@@ -177,7 +171,7 @@ class SokobanMap:
             line = ''
             for c in range(self.x_size):
                 symbol = self.FREE_GLYPH
-                if self.level_map[r][c] == self.OBSTACLE_SYMBOL:
+                if self.obstacle_map[r][c] == self.OBSTACLE_SYMBOL:
                     symbol = self.OBST_GLYPH
                 if (r, c) in self.tgt_positions:
                     symbol = self.TGT_GLYPH
@@ -189,7 +183,7 @@ class SokobanMap:
                 line += symbol
             print(line)
 
-        print('------')
+        print('\n\n')
 
     def is_finished(self):
         finished = True
@@ -204,67 +198,63 @@ def main(arglist):
     Run a playable game of Sokoban using the given filename as the map file.
     :param arglist: map file name
     """
-
-    ''' # YOU CAN REMOVE THIS PART IN MAC
     try:
         import msvcrt
         getchar = msvcrt.getch
     except ImportError:
-        getchar = sys.stdin.read(1)
-    '''
 
-    if len(arglist) != 1:
-        print("Running this file directly launches a playable game of Sokoban based on the given map file.")
-        print("Usage: sokoban_map.py [map_file_name]")
-        return
+        if len(arglist) != 1:
+            print("Running this file directly launches a playable game of Sokoban based on the given map file.")
+            print("Usage: sokoban_map.py [map_file_name]")
+            return
 
-    print("Use the arrow keys to move. Press 'q' to quit. Press 'r' to restart the map.")
+        print("Use the arrow keys to move. Press 'q' to quit. Press 'r' to restart the map.")
 
-    map_inst = SokobanMap(arglist[0])
-    map_inst.render()
+        map_inst = SokobanMap(arglist[0])
+        map_inst.render()
 
-    steps = 0
+        steps = 0
 
-    while True:
-        #char = getchar() #REPLACE WITH BELOW FOR MAC
-        char = sys.stdin.read(1)
-        sys.stdin.flush()
+        while True:
+            # char = getchar() #REPLACE WITH BELOW FOR MAC
+            char = sys.stdin.read(1)
+            sys.stdin.flush()
 
-	# FOR MAC & Python 3, you can simply compare to the characters:
-        if char == 'q':
-            break
+            # FOR MAC & Python 3, you can simply compare to the characters:
+            if char == 'q':
+                break
 
-        if char == 'r':
-            map_inst = SokobanMap(arglist[0])
-            map_inst.render()
+            if char == 'r':
+                map_inst = SokobanMap(arglist[0])
+                map_inst.render()
 
-            steps = 0
+                steps = 0
 
-        #if char == b'\xe0':
-        if char in {'w', 's', 'a', 'd'}:
-            dir = char
-            # got arrow - read direction
-            #dir = getchar()
-            if dir == b'H' or dir == 'w':
-                a = SokobanMap.UP
-            elif dir == b'P' or dir == 's':
-                a = SokobanMap.DOWN
-            elif dir == b'K' or dir == 'a':
-                a = SokobanMap.LEFT
-            elif dir == b'M' or dir == 'd':
-                a = SokobanMap.RIGHT
-            else:
-                print("!!!error")
-                a = SokobanMap.UP
+            # if char == b'\xe0':
+            if char in {'w', 's', 'a', 'd'}:
+                dir = char
+                # got arrow - read direction
+                # dir = getchar()
+                if dir == b'H' or dir == 'w':
+                    a = SokobanMap.UP
+                elif dir == b'P' or dir == 's':
+                    a = SokobanMap.DOWN
+                elif dir == b'K' or dir == 'a':
+                    a = SokobanMap.LEFT
+                elif dir == b'M' or dir == 'd':
+                    a = SokobanMap.RIGHT
+                else:
+                    print("!!!error")
+                    a = SokobanMap.UP
 
-            map_inst.apply_move(a)
-            map_inst.render()
+                map_inst.apply_move(a)
+                map_inst.render()
 
-            steps += 1
+                steps += 1
 
-            if map_inst.is_finished():
-                print("Puzzle solved in " + str(steps) + " steps!")
-                return
+                if map_inst.is_finished():
+                    print("Puzzle solved in " + str(steps) + " steps!")
+                    return
 
 
 if __name__ == '__main__':
