@@ -1,5 +1,5 @@
 import sys
-from .astar import *
+
 
 class SokobanMap:
     """
@@ -68,6 +68,10 @@ class SokobanMap:
                     rows[i][j] = self.FREE_SPACE_SYMBOL
                 elif rows[i][j] == self.PLAYER_SYMBOL:
                     player_position = (i, j)
+                    # Check if player start is possible dead zone
+                    if rows[i][j - 1] == self.OBSTACLE_SYMBOL or rows[i][j + 1] == self.OBSTACLE_SYMBOL:
+                        if rows[i - 1][j] == self.OBSTACLE_SYMBOL or rows[i + 1][j] == self.OBSTACLE_SYMBOL:
+                            dead_positions.append((i, j))
                     rows[i][j] = self.FREE_SPACE_SYMBOL
                 elif rows[i][j] == self.BOX_ON_TGT_SYMBOL:
                     box_positions.append((i, j))
@@ -78,7 +82,7 @@ class SokobanMap:
                     tgt_positions.append((i, j))
                     rows[i][j] = self.FREE_SPACE_SYMBOL
                     # Check for "deadzones" from map layout and add to list
-                elif rows[i][j] == self.FREE_SPACE_SYMBOL or rows[i][j] == self.PLAYER_SYMBOL:
+                elif rows[i][j] == self.FREE_SPACE_SYMBOL:
                     if rows[i][j - 1] == self.OBSTACLE_SYMBOL or rows[i][j + 1] == self.OBSTACLE_SYMBOL:
                         if rows[i - 1][j] == self.OBSTACLE_SYMBOL or rows[i + 1][j] == self.OBSTACLE_SYMBOL:
                             dead_positions.append((i, j))
