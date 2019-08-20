@@ -78,7 +78,7 @@ class SokobanMap:
                     tgt_positions.append((i, j))
                     rows[i][j] = self.FREE_SPACE_SYMBOL
                     # Check for "deadzones" from map layout and add to list
-                if rows[i][j] == self.FREE_SPACE_SYMBOL or rows[i][j] == self.PLAYER_SYMBOL:
+                elif rows[i][j] == self.FREE_SPACE_SYMBOL or rows[i][j] == self.PLAYER_SYMBOL:
                     if rows[i][j - 1] == self.OBSTACLE_SYMBOL or rows[i][j + 1] == self.OBSTACLE_SYMBOL:
                         if rows[i - 1][j] == self.OBSTACLE_SYMBOL or rows[i + 1][j] == self.OBSTACLE_SYMBOL:
                             dead_positions.append((i, j))
@@ -172,6 +172,10 @@ class SokobanMap:
 
         return True
 
+    def check_box_dead_zone(self):
+        for y, x in self.box_positions:
+            print(y)
+            print(x)
 
     def check_map_dead_zone(self):
         for i in self.box_positions:
@@ -261,9 +265,13 @@ def main(arglist):
 
             map_inst.apply_move(a)
             map_inst.render()
+            map_inst.check_box_dead_zone()
+            # check if the box is in a map dead zone
             if map_inst.check_map_dead_zone():
                 print("can not complete/fail")
                 return
+
+
 
             steps += 1
 
