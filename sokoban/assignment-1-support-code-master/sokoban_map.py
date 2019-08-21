@@ -61,10 +61,23 @@ class SokobanMap:
         box_positions = []
         tgt_positions = []
         dead_positions = []
+        # All obstacle positions
         obstacle_positions = []
+        # Obstacle positions by row and column
+        obstacle_positions_x = []
+        obstacle_positions_y = []
         player_position = None
+
         for i in range(num_rows):
+            # Trying to get the deadzones on walls
+            # Positions of obstacles by row and column
+            obstacle_positions_row = []
+            obstacle_positions_column = []
+            obstacle_positions_x.append(obstacle_positions_row)
+            obstacle_positions_y.append(obstacle_positions_column)
+
             for j in range(row_len):
+
                 if rows[i][j] == self.BOX_SYMBOL:
                     box_positions.append((i, j))
                     rows[i][j] = self.FREE_SPACE_SYMBOL
@@ -77,6 +90,7 @@ class SokobanMap:
                     player_position = (i, j)
 
                     # Check if player start is possible dead zone
+                    # Corner deadzone
                     if rows[i][j - 1] == self.OBSTACLE_SYMBOL or rows[i][j + 1] == self.OBSTACLE_SYMBOL:
                         if rows[i - 1][j] == self.OBSTACLE_SYMBOL or rows[i + 1][j] == self.OBSTACLE_SYMBOL:
                             dead_positions.append((i, j))
@@ -93,15 +107,20 @@ class SokobanMap:
                     rows[i][j] = self.FREE_SPACE_SYMBOL
 
                     # Check for "deadzones" from map layout and add to list
+                    # Corner deadzones
                 elif rows[i][j] == self.FREE_SPACE_SYMBOL:
                     if rows[i][j - 1] == self.OBSTACLE_SYMBOL or rows[i][j + 1] == self.OBSTACLE_SYMBOL:
                         if rows[i - 1][j] == self.OBSTACLE_SYMBOL or rows[i + 1][j] == self.OBSTACLE_SYMBOL:
                             dead_positions.append((i, j))
-                            
+
                 elif rows[i][j] == self.OBSTACLE_SYMBOL:
                     obstacle_positions.append((i, j))
+                    obstacle_positions_row.append((i, j))
+                    obstacle_positions_column.append((j, i))
 
         print(dead_positions)
+
+
 
         assert len(box_positions) == len(tgt_positions), "Number of boxes does not match number of targets"
 
@@ -113,9 +132,12 @@ class SokobanMap:
         self.player_x = player_position[1]
         self.player_y = player_position[0]
         self.obstacle_map = rows
-        self.dead_positions = dead_positions
         self.obstacle_positions = obstacle_positions
-        print(obstacle_positions)
+        self.obstacle_positions_x = obstacle_positions_x
+        self.obstacle_positions_y = obstacle_positions_y
+        self.dead_positions = dead_positions
+        print(self.dead_positions)
+        print(self.tgt_positions)
 
     def search(self, obstacle_map, player_position, dead_positions,search):
         return False
@@ -202,23 +224,56 @@ class SokobanMap:
     """
     def check_box_dead_zone(self):
         # If 2 boxes are next to each other and against the wall then no move can be made
+        #####
         for y, x in self.box_positions:
-            if self.box_positions.__contains__((y-1, x)) or self.box_positions.__contains__((y + 1, x)):
-                if self.obstacle_positions.__contains__((y, x - 1)) or self.obstacle_positions.__contains__((y, x + 1)):
-                    return True
-            if self.box_positions.__contains__((y, x - 1)) or self.box_positions.__contains__((y, x + 1)):
-                if self.obstacle_positions.__contains__((y - 1, x)) or self.obstacle_positions.__contains__((y + 1, x)):
-                    return True
+            if self.box_positions.__contains__((y-1, x)) or \
+                    self.box_positions.__contains__((y + 1, x)):
+                if self.obstacle_positions.__contains__((y, x - 1)) or \
+                        self.obstacle_positions.__contains__((y, x + 1)):
+                    if self.tgt_positions.__contains__((y, x)):
+                        return False
+                    else:
+                        return True
+            if self.box_positions.__contains__((y, x - 1)) or \
+                    self.box_positions.__contains__((y, x + 1)):
+                if self.obstacle_positions.__contains__((y - 1, x)) or \
+                        self.obstacle_positions.__contains__((y + 1, x)):
+                    if self.tgt_positions.__contains__((y, x)):
+                        return False
+                    else:
+                        return True
+
+
+    def wall_dead_zone(self):
+            # Trying to implement wall dead zones
+        for y, x in self.tgt_positions:
+            if not self.obstacle_positions_x[-1].__contains__((y + 1, x)):
+                self.add_to_dead_zone(self.obstacle_positions_x[-1])
+
+            if not self.obstacle_positions_x[0].__contains__((y - 1, x)):
+                self.add_to_dead_zone(self.obstacle_positions_x[0])
+
+            if not self.obstacle_positions_y[0].__contains__((y, x - 1)):
+                self.add_to_dead_zone(self.obstacle_positions_y[0])
+
+            if not self.obstacle_positions_y[-1].__contains__((y, x + 1)):
+                self.add_to_dead_zone(self.obstacle_positions_y[-1])
 
     """
     Check if the box is in a 'dead-zone' from the map positioning
     @:return True if the game is over
     """
     def check_map_dead_zone(self):
+        # Corner check
         for i in self.box_positions:
             for j in self.dead_positions:
                 if i == j:
                     return True
+
+    def add_to_dead_zone(self, coordinates):
+        # Adding coordinates to deadzones
+        for y, x in coordinates:
+            self.dead_positions.append((y, x))
 
     def render(self):
         """
@@ -270,6 +325,8 @@ def main(arglist):
     map_inst = SokobanMap(arglist[0])
     map_inst.render()
     actions = ['d','l','l','u','l','d','d']
+    #map_inst.wall_dead_zone()
+    #print(dead_positions)
 
     steps = 0
     if ai:
