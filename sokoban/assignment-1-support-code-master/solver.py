@@ -231,7 +231,7 @@ class SokobanMap:
             #POP THE SMALLEST LEAF
             for node in Node.leaf_states.pop(sorted(Node.leaf_states)[0]):
                 # MAKE SUCCESSORS
-                node.successor_states = node.next_states(self.obstacle_map,self.tgt_positions)
+                    node.successor_states = node.next_states(self.obstacle_map,self.tgt_positions)
             #ADD SUCCESSORS TO LEAF (done in next states) OR GOAL REACHED (done in next states)
         #REPEAT TILL SATISFIED
 
@@ -283,7 +283,7 @@ class SokobanMiniMap:
             self.player_position = player_position
             self.player_x = player_position[1]
             self.player_y = player_position[0]
-            self.box_positions = box_positions
+            self.box_positions = list(box_positions)
             self.tgt_positions = tgt_positions
 
     def apply_move(self, move):
@@ -479,20 +479,19 @@ def main(arglist):
         map_inst.render()
         steps = 0
         solution = map_inst.search()
-        print(solution)
         for move in solution[0]:
             map_inst.apply_move(move)
             steps += 1
+            print(str(move))
             map_inst.render()
 
 
 
         if map_inst.is_finished():
             print("Puzzle solved in " + str(steps) + " steps!")
-            print(solution)
-            return
+        return
 
 if __name__ == '__main__':
-    main(['testcases/1box_m1.txt'])
+    main(['testcases/2box_m1.txt'])
 
 
