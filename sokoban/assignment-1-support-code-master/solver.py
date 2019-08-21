@@ -1,6 +1,6 @@
-import random
 import sys
-import copy
+import time
+
 #goal state is a box on top of every target
 #hash that for quickly checking
 #only be concerned where the box goes for each state
@@ -209,6 +209,10 @@ class SokobanMap:
                 finished = False
         return finished
 
+    def asearch(self):
+        ##calculate all those heuristic values
+        pass
+
     def search(self):
         """
         :param self:
@@ -241,7 +245,12 @@ class SokobanMap:
         g = Node.goals_reached
         path = []
         path = goal_state.retrace_path()
-        return (reversed(path),Node.num_nodes,len(Node.leaf_states),len(Node.seen_states))
+        leaves = root.leaf_count()
+        return (reversed(path),
+                Node.num_nodes,
+                len(Node.leaf_states),
+                len(Node.seen_states),
+                leaves)
 
 
 
@@ -451,6 +460,9 @@ class Node:
 
         return successors
 
+    def anext_states(self,obstacle_map,tgt_positions):
+        pass
+
     def retrace_path(self):
         path = []
         self.retrace_recursively(self,path)
@@ -461,6 +473,14 @@ class Node:
             return
         path.append(node.dir_to_here)
         node.retrace_recursively(node.parent_state,path)
+
+    def leaf_count(self):
+        blood_on_leaves = 0 #yahndi
+        for node in Node.seen_states.values():
+            if len(node.successor_states) == 0:
+                blood_on_leaves +=1
+        return blood_on_leaves
+
 
 
 #helper hashmap builder basically because we aint got no good tree traversal
@@ -478,20 +498,29 @@ def main(arglist):
         map_inst = SokobanMap(arglist[0])
         map_inst.render()
         steps = 0
-        solution = map_inst.search()
+        start = time.time()
+        if len(arglist) > 2:
+            solution = map_inst.asearch()
+        else: solution = map_inst.search()
+        end = time.time()
+        print_sol = []
+        num_nodes = solution[1]
+        num_leaves = solution[4]
+
         for move in solution[0]:
+            print_sol.append(str(move))
             map_inst.apply_move(move)
             steps += 1
-            print(str(move))
-            map_inst.render()
 
+        map_inst.render() #finished
+        timeyboy = end-start
 
 
         if map_inst.is_finished():
-            print("Puzzle solved in " + str(steps) + " steps!")
+            print("--------------------------------------------")
+            print("Steps: %d || Nodes: %d || Leaves: %d || Time: %3.6f seconds"%(steps,num_nodes,num_leaves,timeyboy))
+            print("Solution:" + str(print_sol))
         return
 
 if __name__ == '__main__':
-    main(['testcases/2box_m1.txt'])
-
-
+    main(['testcases/3box_m2.txt'])
