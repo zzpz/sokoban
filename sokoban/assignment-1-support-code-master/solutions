@@ -1,0 +1,27 @@
+num_nodes,num_leaves,num_nodes_explored_list,search,map
+998,230,not tracked,0.010399,UCS,testcases/1box_m1.txt
+651,96,not tracked,0.006519,UCS,testcases/1box_m2.txt
+1056,154,not tracked,0.011930,UCS,testcases/1box_m3.txt
+793887,43136,not tracked,8.054113,A*,testcases/1box_m4.txt
+92,12,not tracked,0.001247,UCS,testcases/2box_m1.txt
+24820,3191,not tracked,0.249121,UCS,testcases/2box_m2.txt
+66335,7219,not tracked,0.669930,UCS,testcases/2box_m3.txt
+7065,876,not tracked,0.074398,UCS,testcases/3box_m1.txt
+489936,63617,not tracked,5.640911,UCS,testcases/3box_m2.txt
+170700,20997,not tracked,1.955515,UCS,testcases/4box_m1.txt
+10803715,1272774,not tracked,134.912220,UCS,testcases/4box_m2.txt
+3988483,489863,not tracked,49.900706,UCS,testcases/4box_m3.txt
+3507714,447086,not tracked,43.347857,UCS,testcases/6box_m2.txt
+1483,312,not tracked,0.018188,A*,testcases/1box_m1.txt
+666,100,not tracked,0.007734,A*,testcases/1box_m2.txt
+968,138,not tracked,0.012483,A*,testcases/1box_m3.txt
+868733,44994,not tracked,7.610823,UCS,testcases/1box_m4.txt
+92,13,not tracked,0.001550,A*,testcases/2box_m1.txt
+23914,3196,not tracked,0.275871,A*,testcases/2box_m2.txt
+64057,7220,not tracked,0.783828,A*,testcases/2box_m3.txt
+6229,982,not tracked,0.081394,A*,testcases/3box_m1.txt
+456770,66264,not tracked,6.428375,A*,testcases/3box_m2.txt
+168103,21971,not tracked,2.401982,A*,testcases/4box_m1.txt
+10679688,1291920,not tracked,169.806536,A*,testcases/4box_m2.txt
+3851325,479441,not tracked,60.107042,A*,testcases/4box_m3.txt
+3528598,456964,not tracked,58.036466,A*,testcases/6box_m2.txt

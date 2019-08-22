@@ -1,22 +1,6 @@
 import sys
 import time
 
-#goal state is a box on top of every target
-#hash that for quickly checking
-#only be concerned where the box goes for each state
-    #man can get there it just has a cost to get to that state
-
-#S1 = initial state
-#S1 + SELECT and apply a move
-    #--> state change?
-        #no, SELECT and apply again moves +=1
-        #yes, is new state goal state?
-            #no, S1 becomes parent
-            #select next shortest path to test --> test.
-
-
-#, repeat until state change or unsolveable
-#S2 initial state is it's parent
 
 class SokobanMap:
     """
@@ -73,26 +57,64 @@ class SokobanMap:
 
         box_positions = []
         tgt_positions = []
+        # dead positions
+        dead_positions = []
+        # All obstacle positions
+        obstacle_positions = []
+        # Obstacle positions by row and column
+        obstacle_positions_x = []
+        obstacle_positions_y = []
         player_position = None
+
         for i in range(num_rows):
+            # Trying to get the deadzones on walls
+            # Positions of obstacles by row and column
+            obstacle_positions_row = []
+            obstacle_positions_column = []
+            obstacle_positions_x.append(obstacle_positions_row)
+            obstacle_positions_y.append(obstacle_positions_column)
+
             for j in range(row_len):
+
                 if rows[i][j] == self.BOX_SYMBOL:
                     box_positions.append((i, j))
                     rows[i][j] = self.FREE_SPACE_SYMBOL
+
                 elif rows[i][j] == self.TGT_SYMBOL:
                     tgt_positions.append((i, j))
                     rows[i][j] = self.FREE_SPACE_SYMBOL
+
                 elif rows[i][j] == self.PLAYER_SYMBOL:
                     player_position = (i, j)
+
+                    # Check if player start is possible dead zone
+                    # Corner deadzone
+                    if rows[i][j - 1] == self.OBSTACLE_SYMBOL or rows[i][j + 1] == self.OBSTACLE_SYMBOL:
+                        if rows[i - 1][j] == self.OBSTACLE_SYMBOL or rows[i + 1][j] == self.OBSTACLE_SYMBOL:
+                            dead_positions.append((i, j))
                     rows[i][j] = self.FREE_SPACE_SYMBOL
+
                 elif rows[i][j] == self.BOX_ON_TGT_SYMBOL:
                     box_positions.append((i, j))
                     tgt_positions.append((i, j))
                     rows[i][j] = self.FREE_SPACE_SYMBOL
+
                 elif rows[i][j] == self.PLAYER_ON_TGT_SYMBOL:
                     player_position = (i, j)
                     tgt_positions.append((i, j))
                     rows[i][j] = self.FREE_SPACE_SYMBOL
+
+                    # Check for "deadzones" from map layout and add to list
+                    # Corner deadzones
+                elif rows[i][j] == self.FREE_SPACE_SYMBOL:
+                    if rows[i][j - 1] == self.OBSTACLE_SYMBOL or rows[i][j + 1] == self.OBSTACLE_SYMBOL:
+                        if rows[i - 1][j] == self.OBSTACLE_SYMBOL or rows[i + 1][j] == self.OBSTACLE_SYMBOL:
+                            dead_positions.append((i, j))
+
+                elif rows[i][j] == self.OBSTACLE_SYMBOL:
+                    obstacle_positions.append((i, j))
+                    obstacle_positions_row.append((i, j))
+                    obstacle_positions_column.append((j, i))
 
         assert len(box_positions) == len(tgt_positions), "Number of boxes does not match number of targets"
 
@@ -104,6 +126,10 @@ class SokobanMap:
         self.player_x = player_position[1]
         self.player_y = player_position[0]
         self.obstacle_map = rows
+        self.obstacle_positions = obstacle_positions
+        self.obstacle_positions_x = obstacle_positions_x
+        self.obstacle_positions_y = obstacle_positions_y
+        self.dead_positions = dead_positions
 
     def apply_move(self, move):
         """
@@ -211,22 +237,13 @@ class SokobanMap:
 
     def asearch(self):
         ##calculate all those heuristic values
-        pass
-
-    def search(self):
-        """
-        :param self:
-        :param smap:
-        :return:
-        """
-        root = Node(None, -1, None, self.player_position, self.box_positions)
+        root = Node(None,-1,None,self.player_position,self.box_positions)
         key = hash((tuple(sorted(root.box_positions)), root.player_position))
+        root.heuristic(self.tgt_positions)
         cost = root.cost
         Node.seen_states.update({key:root})
         add(Node.leaf_states,cost,root)
 
-
-        #HERE IS WHERE WE INSERT OUR TIME LIMIT AND COUNTERS FOR SEARCH
 
         # (WHILE GOAL NOT found) OR LEAF EXISTS THAT IS LESS COST THAN SMALLEST REACHED GOAL STATE
         while (len(Node.goals_reached)==0 or
@@ -235,7 +252,51 @@ class SokobanMap:
             #POP THE SMALLEST LEAF
             for node in Node.leaf_states.pop(sorted(Node.leaf_states)[0]):
                 # MAKE SUCCESSORS
-                    node.successor_states = node.next_states(self.obstacle_map,self.tgt_positions)
+                    node.successor_states = node.anext_states(self.obstacle_map,self.tgt_positions,self.obstacle_positions,self.dead_positions)
+            #ADD SUCCESSORS TO LEAF (done in next states) OR GOAL REACHED (done in next states)
+        #REPEAT TILL SATISFIED
+
+        # get smallest solution node and retrace steps
+        key = sorted(Node.goals_reached.keys())[0]
+        goal_state = Node.goals_reached.get(key)[0]
+        g = Node.goals_reached
+        path = []
+        path = goal_state.retrace_path()
+        leaves = root.leaf_count()
+        return (reversed(path),
+                Node.num_nodes,
+                len(Node.leaf_states),
+                len(Node.seen_states),
+                leaves)
+
+
+
+
+
+
+    def search(self):
+        """
+        :param self:
+        :param smap:
+        :return:
+        """
+        player_pos = list(self.player_position)
+        box_pos = list(self.box_positions)
+        root = Node(None, -1, None, player_pos, box_pos)
+        key = hash((tuple(sorted(root.box_positions)), root.player_position))
+        cost = root.cost
+        Node.seen_states.update({key:root})
+        add(Node.leaf_states,cost,root)
+
+
+        # (WHILE GOAL NOT found) OR LEAF EXISTS THAT IS LESS COST THAN SMALLEST REACHED GOAL STATE
+        while (len(Node.goals_reached)==0 or
+               (len((Node.leaf_states)) != 0 and sorted(Node.leaf_states)[0] < sorted(Node.goals_reached)[0])):
+
+            #POP THE SMALLEST LEAF
+            for node in Node.leaf_states.pop(sorted(Node.leaf_states)[0]):
+                # MAKE SUCCESSORS
+                    node.successor_states = node.next_states(self.obstacle_map,self.tgt_positions,self.obstacle_positions,self.dead_positions)
             #ADD SUCCESSORS TO LEAF (done in next states) OR GOAL REACHED (done in next states)
         #REPEAT TILL SATISFIED
 
@@ -281,7 +342,7 @@ class SokobanMiniMap:
     UP = 'u'
     DOWN = 'd'
 
-    def __init__(self, obstacle_map, player_position, box_positions,tgt_positions):
+    def __init__(self, obstacle_map, player_position, box_positions,tgt_positions,obstacle_positions,dead_positions):
             """
             constructs a sokoban map without parsing a file
             :param obstacle_map:
@@ -294,6 +355,10 @@ class SokobanMiniMap:
             self.player_y = player_position[0]
             self.box_positions = list(box_positions)
             self.tgt_positions = tgt_positions
+            self.obstacle_positions = obstacle_positions
+            # self.obstacle_positions_x = obstacle_positions_x
+            # self.obstacle_positions_y = obstacle_positions_y
+            self.dead_positions = list(dead_positions)
 
     def apply_move(self, move):
         """
@@ -301,6 +366,12 @@ class SokobanMiniMap:
         :param move: 'L', 'R', 'U' or 'D'
         :return: True if move was successful, false if move could not be completed
         """
+
+        if self.check_map_dead_zone():
+            return False
+        # if self.check_box_dead_zone(): invalid. immediately fails on 4box_m2
+        #     return False
+
         # basic obstacle check
         if move == self.LEFT:
             if self.obstacle_map[self.player_y][self.player_x - 1] == self.OBSTACLE_SYMBOL:
@@ -374,11 +445,66 @@ class SokobanMiniMap:
         self.player_position = (self.player_y, self.player_x)
         return True
 
+    """
+    Check if the box is in a 'dead-zone' from the map positioning
+    @:return True if the game is over
+    """
+    def check_map_dead_zone(self):
+        # Corner check
+        for i in self.box_positions:
+            for j in self.dead_positions:
+                if i == j:
+                    return True
+
+    """
+    Check if the boxes have created a 'dead-zone' and the game is over
+    @:return True if the game is over
+    """
+    def check_box_dead_zone(self):
+        # If 2 boxes are next to each other and both against the same wall then no move can be made
+        #####
+        for box in self.box_positions:
+            a = (box[0]+1,box[1])
+            b = (box[0]-1,box[1])
+            if a in self.box_positions or b in self.box_positions:
+                for obstacle in self.obstacle_positions:
+                    c = (obstacle[0]+1,obstacle[1])
+                    d = (obstacle[0]-1,obstacle[1])
+                    if c in self.obstacle_positions or d in self.obstacle_positions:
+                        if box in self.tgt_positions:
+                            return False
+                        else:
+                            return True
+            for box in self.box_positions:
+                a = (box[0], box[1]+1)
+                b = (box[0], box[1]-1)
+                if a in self.box_positions or b in self.box_positions:
+                    for obstacle in self.obstacle_positions:
+                        c = (obstacle[0], obstacle[1]+1)
+                        d = (obstacle[0], obstacle[1]-1)
+                        if c in self.obstacle_positions or d in self.obstacle_positions:
+                            if box in self.tgt_positions:
+                                return False
+                            else:
+                                return True
+            # if self.box_positions.__contains__((y-1, x)) or \
+            #         self.box_positions.__contains__((y + 1, x)):
+            #     if self.obstacle_positions.__contains__((y, x - 1)) or \
+            #             self.obstacle_positions.__contains__((y, x + 1)):
+            #         if self.tgt_positions.__contains__((y, x)):
+            #             return False
+            #         else:
+            #             return True
+            # if self.box_positions.__contains__((y, x - 1)) or \
+            #         self.box_positions.__contains__((y, x + 1)):
+            #     if self.obstacle_positions.__contains__((y - 1, x)) or \
+            #             self.obstacle_positions.__contains__((y + 1, x)):
+            #         if self.tgt_positions.__contains__((y, x)):
+            #             return False
+            #         else:
+            #             return True
 
 class Node:
-
-    def __repr__(self):
-        return print("box: % player: %" % self.box_positions, self.player_position)
 
     seen_states = {} # where we hash and keep our seen states
     leaf_states = {} # where we search for our shortest path to check next
@@ -404,7 +530,7 @@ class Node:
                     finished = False
             return finished
 
-    def make_minimap(self, obstacle_map, player_position, box_positions,tgt_positions):
+    def make_minimap(self, obstacle_map, player_position, box_positions,tgt_positions,obstacle_positions,dead_positions):
         """
         used with the apply_move from sokoban map to determine if it is a valid move.
         :param obstacle_map:
@@ -412,10 +538,10 @@ class Node:
         :param big_map: a sokobanMap
         :return: a modified sokobanmap that does not read file input
         """
-        smap = SokobanMiniMap(obstacle_map, player_position, box_positions,tgt_positions)
+        smap = SokobanMiniMap(obstacle_map, player_position, box_positions,tgt_positions,obstacle_positions,dead_positions)
         return smap
 
-    def next_states(self, obstacle_map,tgt_positions):
+    def next_states(self, obstacle_map,tgt_positions,obstacle_positions,dead_positions):
         """
         a state tells you it's possible next states (adjacent squares that haven't been a visited state)
         :return:
@@ -428,11 +554,11 @@ class Node:
         # compute next states by applying a move to the map that moves the player to a non-visited node
         # visited and non-visited nodes are held in the SokobanMap?
 
-        current_map = self.make_minimap(obstacle_map, self.player_position, self.box_positions, tgt_positions)
+        current_map = self.make_minimap(obstacle_map, self.player_position, self.box_positions, tgt_positions,obstacle_positions,dead_positions)
         for move in self.moves: #they're all equally weighted by cost
 
             ##select the state with lowest move cost and do it first (already done prior to here)
-            next_map = self.make_minimap(obstacle_map, current_map.player_position, current_map.box_positions, tgt_positions)
+            next_map = self.make_minimap(obstacle_map, current_map.player_position, current_map.box_positions, tgt_positions,obstacle_positions,dead_positions)
 
             if next_map.apply_move(move): ##false if invalid --> terminate that path
                 ##create new state if not exists in list of exisiting states
@@ -460,8 +586,50 @@ class Node:
 
         return successors
 
-    def anext_states(self,obstacle_map,tgt_positions):
-        pass
+    def anext_states(self,obstacle_map,tgt_positions,obstacle_positions,dead_positions):
+        """
+               a state tells you it's possible next states (adjacent squares that haven't been a visited state)
+               :return:
+               """
+
+        successors = []
+        ##UCS --> next state is just neighbours. Costs are uniform so we don't care which way we go
+
+        # compute next states by applying a move to the map that moves the player to a non-visited node
+        # visited and non-visited nodes are held in the SokobanMap?
+
+        current_map = self.make_minimap(obstacle_map, self.player_position, self.box_positions, tgt_positions,obstacle_positions,dead_positions)
+        for move in self.moves:  # they're all equally weighted by cost but the node they land on will have a heuristic
+
+            ##select the state with lowest move cost and do it first (already done prior to here)
+            next_map = self.make_minimap(obstacle_map, current_map.player_position, current_map.box_positions,
+                                         tgt_positions,obstacle_positions,dead_positions)
+
+            if next_map.apply_move(move):  ##false if invalid --> terminate that path
+                ##create new state if not exists in list of exisiting states
+                new_state = Node(self, self.cost, move, next_map.player_position, next_map.box_positions)
+                new_state.heuristic(tgt_positions) #update's its cost
+                if new_state.test_state_is_goal(next_map):
+                    ##if it's the lowest cost solution it wins if all leafs are empty or longer
+                    cost = new_state.cost
+                    add(Node.goals_reached, cost, new_state)
+                    continue
+
+                ##if new_state in set of existing states, is it less than the other state? Yes? Replace
+                key = ((tuple(sorted(new_state.box_positions)), new_state.player_position))
+                if key in Node.seen_states:
+                    continue
+                    # we've been here before, we did it quicker or we got a hash collision but whatever
+                    ##if we did, is this state already a leaf? --> not possible for UCS
+                    # if so, replace leaf and seen value
+                    # else, replace seen
+                else:
+                    cost = new_state.cost
+                    add(Node.leaf_states, cost, new_state)
+                    Node.seen_states.update({key: new_state})
+                    successors.append(new_state)
+
+        return successors
 
     def retrace_path(self):
         path = []
@@ -481,6 +649,19 @@ class Node:
                 blood_on_leaves +=1
         return blood_on_leaves
 
+    def heuristic(self, tgt_positions):
+        """
+        heuristic is the manhattan distance to the nearest target position from a square.
+        playerposition is its current position because
+        player has moved onto it.
+        """
+        heuristic = []
+        for target in tgt_positions:
+            diffy = self.player_position[0] - target[0]  # (x1-x2 , y1-y2) --> (x3,y3)
+            diffx = self.player_position[1] - target[1]
+            heuristic.append((abs(diffy)+abs(diffx)))
+        self.cost += min(heuristic)
+
 
 
 #helper hashmap builder basically because we aint got no good tree traversal
@@ -499,9 +680,14 @@ def main(arglist):
         map_inst.render()
         steps = 0
         start = time.time()
-        if len(arglist) > 2:
+        search = ''
+        if arglist[2] == 'a':
+            solution = map_inst.search()
+            search = 'UCS'
+        else:
             solution = map_inst.asearch()
-        else: solution = map_inst.search()
+            search = 'A*'
+
         end = time.time()
         print_sol = []
         num_nodes = solution[1]
@@ -515,12 +701,25 @@ def main(arglist):
         map_inst.render() #finished
         timeyboy = end-start
 
-
         if map_inst.is_finished():
             print("--------------------------------------------")
-            print("Steps: %d || Nodes: %d || Leaves: %d || Time: %3.6f seconds"%(steps,num_nodes,num_leaves,timeyboy))
+            print("%s %s => Steps: %d || Nodes: %d || Leaves: %d || Time: %3.6f seconds"%(search,str(arglist[0]),steps,num_nodes,num_leaves,timeyboy))
             print("Solution:" + str(print_sol))
+
+
+        ##manually include write out
+        if False:
+            w = open(arglist[1],'a')
+            s = str(print_sol)+"\n"
+            s2 = ("%d,%d,not tracked,%3.6f,%s,%s\n" %(num_nodes,num_leaves,timeyboy,search,str(arglist[0])))
+            w.write(s)
+            w.write(s2)
+
+            w.close()
+
         return
 
 if __name__ == '__main__':
-    main(['testcases/3box_m2.txt'])
+    main(sys.argv[1:])
+
+# Python ProgramName.py inputFileName outputFileName
